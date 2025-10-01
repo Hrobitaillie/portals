@@ -1,0 +1,7 @@
+/* Host overlay container : z-index très haut, pas de clash */
+#portals-overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647; /* > tout */
+  pointer-events: none; /* activé uniquement quand ouvert */
+}
