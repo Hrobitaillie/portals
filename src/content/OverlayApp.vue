@@ -1,15 +1,19 @@
 <template>
   <!-- Backdrop clickable -->
   <div
-    class="fixed inset-0 bg-black/40 backdrop-blur-sm opacity-0 transition-opacity duration-200"
-    :class="{ 'opacity-100': isOpen }"
+    :class="[
+      'fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200',
+      isOpen ? 'opacity-100' : 'opacity-0'
+    ]"
     @click.self="close"
   />
 
   <!-- Pane principal -->
   <div
-    class="fixed inset-0 flex items-center justify-center opacity-0 translate-y-3 transition-all duration-200"
-    :class="{ 'opacity-100 translate-y-0 pointer-events-auto': isOpen }"
+    :class="[
+      'fixed inset-0 flex items-center justify-center transition-all duration-200',
+      isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3'
+    ]"
   >
     <div class="w-[min(1100px,92vw)] h-[min(700px,86vh)] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-black/5 p-4 flex flex-col">
       <!-- Header -->
@@ -37,20 +41,24 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { ref, toRef } from 'vue'
+
+// Props pour recevoir l'état réactif depuis le parent
+const props = defineProps<{
+  isOpen: boolean
+}>()
+
+// Emit pour notifier le parent
+const emit = defineEmits<{
+  close: []
+}>()
 
 const q = ref('')
-const isOpen = ref(false)
-
-function syncIsOpenFromRoot() {
-  const root = document.getElementById('portals-overlay-root')
-  isOpen.value = root?.getAttribute('data-open') === '1'
-}
+// Utiliser toRef pour rendre la prop réactive
+const isOpen = toRef(props, 'isOpen')
 
 function close() {
-  // update local state immediately so the DOM reacts without waiting for the roundtrip
-  isOpen.value = false
-  chrome.runtime.sendMessage({ type: 'PORTALS_TOGGLE' }) // reboucle sur background → content
+  emit('close')
 }
 
 function submitSearch() {
@@ -60,22 +68,6 @@ function submitSearch() {
   const url = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`
   window.open(url, '_blank')
 }
-
-
-chrome.runtime.onMessage.addListener((message) => {
-  // keep in sync with the container attribute toggled from `src/content/main.ts`
-  // message object may be undefined-ish in some contexts, guard safely
-  console.log(message)
-  if (message?.type === 'PORTALS_TOGGLE') {
-    syncIsOpenFromRoot()
-  }
-})
-
-
-onMounted(() => {
-  // initialize state from the container (mount happens in content/main.ts)
-  syncIsOpenFromRoot()
-})
 </script>
 
 <style scoped>

@@ -1,42 +1,34 @@
-import { createApp } from 'vue'
-import OverlayApp from './OverlayApp.vue'
+import { createApp, type App } from 'vue'
+import { pinia } from '@/shared/pinia'
 import '@/styles/styles.css' // classes 'tw-' seulement
 import './content.css'
+import OverlayLayout from './OverlayLayout.vue'
 
-let appMounted = false
-let container: HTMLDivElement | null = null
+let app: App | null = null
+let container: HTMLElement | null = null
 
 function mount() {
-  if (appMounted) return
+  // Vérifier si l'app est déjà montée
+  if (app) {
+    return
+  }
+
+  // Nettoyer tout container existant (utile pour le hot-reload)
+  const existingContainer = document.getElementById('portals-overlay-root')
+  if (existingContainer) {
+    existingContainer.remove()
+  }
+
+  // Créer le container
   container = document.createElement('div')
   container.id = 'portals-overlay-root'
   document.documentElement.appendChild(container)
-  const app = createApp(OverlayApp)
+
+  // Créer et monter l'app Vue (OverlayLayout gère son propre état)
+  app = createApp(OverlayLayout)
+  app.use(pinia)
   app.mount(container)
-  appMounted = true
 }
 
-function toggleOverlay() {
-  if (!appMounted) mount()
-  if (!container) return
-  const opened = container.getAttribute('data-open') === '1'
-  container.setAttribute('data-open', opened ? '0' : '1')
-  container.style.pointerEvents = opened ? 'none' : 'auto'
-}
-
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === 'PORTALS_TOGGLE') {
-    toggleOverlay()
-  }
-})
-
-// Petite sécurité: ESC pour fermer si ouvert
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const root = document.getElementById('portals-overlay-root')
-    if (root?.getAttribute('data-open') === '1') toggleOverlay()
-  }
-})
-
-// Monte à l’injection (restera masqué tant qu’on ne toggle pas)
+// Monte à l'injection
 mount()
